@@ -8,12 +8,17 @@
 
 ```
 1.ps1 [10.240.209.96:8888]
+
 python src/distributed.py --job_name='ps' --task_index=0
+
 2.work1 [10.240.209.96:8888, docker]
+
 CUDA_VISIBLE_DEVICES=0 \
 python src/distributed.py --job_name='worker' --task_index=0 \
 --worker_host='0.0.0.0:8888,0.0.0.0:9999' 
+
 3.work2 [10.240.209.96:9999, docker]
+
 CUDA_VISIBLE_DEVICES=1 \
 python src/distributed.py --job_name='worker' --task_index=1 \ 
 --worker_host='0.0.0.0:8888,0.0.0.0:9999' 
@@ -31,6 +36,7 @@ python src/distributed.py --job_name='worker' --task_index=1 \
 	1. 实验1
 	# 首先启动ps
 	python src/distributed.py --job_name='ps' --task_index=0
+	
 	# 启动worker1
 	CUDA_VISIBLE_DEVICES=0 \
 	python src/distributed.py --job_name='worker' --task_index=0 \
@@ -41,6 +47,7 @@ python src/distributed.py --job_name='worker' --task_index=1 \
 	2. 实验2
 	# 首先启动ps
 	python src/distributed.py --job_name='ps' --task_index=0
+
 	# 启动worker2
 	CUDA_VISIBLE_DEVICES=1 \ 
 	python src/distributed.py --job_name=worker --task_index=1 \ 
@@ -52,6 +59,7 @@ python src/distributed.py --job_name='worker' --task_index=1 \
 	CUDA_VISIBLE_DEVICES=0 \
 	python src/distributed.py --job_name=worker  --task_index=0 \
     --worker_host='0.0.0.0:8888,0.0.0.0:9999'
+    
 	可以看到worker1和woker2同时开始训练， 训练完成之后worker2继续等待
 
 	# 之所以在docker中采用worker_host='0.0.0.0:8888,0.0.0.0:9999'的方式，是为了使得worker1和worker2之间能够知道彼此的存在，能够通信，同步
