@@ -2,17 +2,17 @@
 
 1. Cluster:  定义一个集群
 2. Job:  定义一个Job
-3. task: 每个Job可以有多个task，一般一台机器上运行一个task
+3. Task: 每个Job可以有多个task，一般一台机器上运行一个task
 
 ##  运行：
 
 ```
-1.ps1
+1.ps1 [10.240.209.96:8888]
 python src/distributed.py --job_name='ps' --task_index=0
-2.work1
+2.work1 [10.240.209.96:8888, docker]
 CUDA_VISIBLE_DEVICES=0 python src/distributed.py --job_name='worker' \
 worker_host='0.0.0.0:8888,0.0.0.0:9999' --task_index=0
-3.work2
+3.work2 [10.240.209.96:9999, docker]
 CUDA_VISIBLE_DEVICES=1 python src/distributed.py --job_name='worker' 
 worker_host='0.0.0.0:8888,0.0.0.0:9999' --task_index=1
 ```
