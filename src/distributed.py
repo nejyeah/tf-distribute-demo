@@ -77,7 +77,6 @@ def main(unused_argv):
                                            hooks=hooks) as mon_sess:
 
       time_begin = time.time()
-      print 'Traing begins @ %f' % time_begin
      
       local_step = 0
       while not mon_sess.should_stop():
@@ -87,22 +86,21 @@ def main(unused_argv):
         _, step = mon_sess.run([train_op, global_step], feed_dict=train_feed)
         local_step += 1
 
-        now = time.time()
-        print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
+        #now = time.time()
+        #print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
 
       time_end = time.time()
-      print 'Training ends @ %f' % time_end
       train_time = time_end - time_begin
       print 'Training elapsed time:%f s' % train_time
 
-      if is_chief:
-        val_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
-        val_xent, val_accuracy = mon_sess.run([cross_entropy, accuracy], feed_dict=val_feed)
-        print 'After %d training step(s)' % (FLAGS.train_steps)
-        print('cross_entropy:')
-        print(np.mean(val_xent))
-        print("accuracy:")
-        print(val_accuracy)
+      #if is_chief:
+      #  val_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
+      #  val_xent, val_accuracy = mon_sess.run([cross_entropy, accuracy], feed_dict=val_feed)
+      #  print 'After %d training step(s)' % (FLAGS.train_steps)
+      #  print('cross_entropy:')
+      #  print(np.mean(val_xent))
+      #  print("accuracy:")
+      #  print(val_accuracy)
 
 if __name__ == '__main__':
     tf.app.run()
