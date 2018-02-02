@@ -1,14 +1,13 @@
 # encoding:utf-8
-import math
 import tempfile
 import time
 import tensorflow as tf
 import numpy as np
-#from tensorflow.examples.tutorials.mnist import input_data
+import model
 
 flags = tf.app.flags
-IMAGE_PIXELS = 28
-flags.DEFINE_string('data_dir', './mnist-data', 'Directory  for storing mnist data')
+flags.DEFINE_integer('image_pixels', 28, 'size of a squre image')
+flags.DEFINE_integer('num_classes', 10, 'num of classes')
 flags.DEFINE_integer('hidden_units', 100, 'Number of units in the hidden layer of the NN')
 flags.DEFINE_integer('train_steps', 10000, 'Number of training steps to perform')
 flags.DEFINE_integer('batch_size', 100, 'Training batch size ')
@@ -28,7 +27,6 @@ flags.DEFINE_integer('task_index', None, 'Index of task within the job')
 flags.DEFINE_integer("issync", None, "是否采用分布式的同步模式，1表示同步模式，0表示异步模式")
 
 FLAGS = flags.FLAGS
-
 
 def main(unused_argv):
     mnist = tf.contrib.learn.datasets.load_dataset('mnist')
@@ -56,29 +54,16 @@ def main(unused_argv):
     is_chief = (FLAGS.task_index == 0)
     with tf.device(tf.train.replica_device_setter(cluster=cluster)):
         global_step = tf.Variable(0, name='global_step', trainable=False)
-
-        hid_w = tf.Variable(tf.truncated_normal([IMAGE_PIXELS * IMAGE_PIXELS, FLAGS.hidden_units],
-                                                stddev=1.0 / IMAGE_PIXELS), name='hid_w')
-        hid_b = tf.Variable(tf.zeros([FLAGS.hidden_units]), name='hid_b')
-
-        sm_w = tf.Variable(tf.truncated_normal([FLAGS.hidden_units, 10],
-                                               stddev=1.0 / math.sqrt(FLAGS.hidden_units)), name='sm_w')
-        sm_b = tf.Variable(tf.zeros([10]), name='sm_b')
-
-        x = tf.placeholder(tf.float32, [None, IMAGE_PIXELS * IMAGE_PIXELS])
+        x = tf.placeholder(tf.float32, [None, FLAGS.image_pixels * FLAGS.image_pixels])
         y_ = tf.placeholder(tf.int32, [None])
 
-        hid_lin = tf.nn.xw_plus_b(x, hid_w, hid_b)
-        hid = tf.nn.relu(hid_lin)
-
-        logits = tf.add(tf.matmul(hid, sm_w), sm_b) 
+        logits = model.mlp(x, FLAGS.image_pixels, FLAGS.hidden_units, FLAGS.num_classes) 
         cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=logits)
         # accuracy
         accuracy = tf.metrics.accuracy(y_, tf.argmax(logits, axis=1))
 
-        opt = tf.train.AdamOptimizer(FLAGS.learning_rate)
+        train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy, global_step=global_step)
 
-        train_step = opt.minimize(cross_entropy, global_step=global_step)
         # 生成本地的参数初始化操作init_op
         init_op = tf.global_variables_initializer()
         train_dir = tempfile.mkdtemp()
@@ -102,7 +87,7 @@ def main(unused_argv):
             batch_xs, batch_ys = mnist.train.next_batch(FLAGS.batch_size)
             train_feed = {x: batch_xs, y_: batch_ys}
 
-            _, step = sess.run([train_step, global_step], feed_dict=train_feed)
+            _, step = sess.run([train_op, global_step], feed_dict=train_feed)
             local_step += 1
 
             now = time.time()
