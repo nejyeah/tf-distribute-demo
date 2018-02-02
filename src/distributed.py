@@ -24,7 +24,7 @@ flags.DEFINE_string('job_name', None, 'job name: worker or ps')
 # 设置任务的索引
 flags.DEFINE_integer('task_index', None, 'Index of task within the job')
 # 选择异步并行，同步并行
-flags.DEFINE_integer("issync", None, "是否采用分布式的同步模式，1表示同步模式，0表示异步模式")
+#flags.DEFINE_integer("issync", None, "是否采用分布式的同步模式，1表示同步模式，0表示异步模式")
 
 FLAGS = flags.FLAGS
 
@@ -64,53 +64,45 @@ def main(unused_argv):
 
         train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy, global_step=global_step)
 
-        # 生成本地的参数初始化操作init_op
-        init_op = tf.global_variables_initializer()
-        train_dir = tempfile.mkdtemp()
-        # Supervisor is deprecated, using "MonitoredTrainingSession" instead
-        # logdir: checkpoint save dir
-        sv = tf.train.Supervisor(is_chief=is_chief, logdir=train_dir, init_op=init_op, recovery_wait_secs=1, global_step=global_step)
+    # 生成本地的参数初始化操作init_op
+    hooks = [tf.train.StopAtStepHook(last_step=FLAGS.train_steps)]
+    ## train_dir = tempfile.mkdtemp()
 
-        if is_chief:
-            print 'Worker %d: Initailizing session...' % FLAGS.task_index
-        else:
-            print 'Worker %d: Waiting for session to be initaialized...' % FLAGS.task_index
+    # The MonitoredTrainingSession takes care of session initialization,
+    # restoring from a checkpoint, saving to a checkpoint, and closing when done
+    # or an error occurs.
+    with tf.train.MonitoredTrainingSession(master=server.target,
+                                           is_chief=is_chief,
+                                           checkpoint_dir="./train_logs",
+                                           hooks=hooks) as mon_sess:
 
-        sess = sv.prepare_or_wait_for_session(server.target)
-        print 'Worker %d: Session initialization  complete.' % FLAGS.task_index
+      time_begin = time.time()
+      print 'Traing begins @ %f' % time_begin
+     
+      local_step = 0
+      while not mon_sess.should_stop():
+        batch_xs, batch_ys = mnist.train.next_batch(FLAGS.batch_size)
+        train_feed = {x: batch_xs, y_: batch_ys}
 
-        time_begin = time.time()
-        print 'Traing begins @ %f' % time_begin
+        _, step = mon_sess.run([train_op, global_step], feed_dict=train_feed)
+        local_step += 1
 
-        local_step = 0
-        while True:
-            batch_xs, batch_ys = mnist.train.next_batch(FLAGS.batch_size)
-            train_feed = {x: batch_xs, y_: batch_ys}
+        now = time.time()
+        print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
 
-            _, step = sess.run([train_op, global_step], feed_dict=train_feed)
-            local_step += 1
+      time_end = time.time()
+      print 'Training ends @ %f' % time_end
+      train_time = time_end - time_begin
+      print 'Training elapsed time:%f s' % train_time
 
-            now = time.time()
-            print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
-
-            if step >= FLAGS.train_steps:
-                break
-
-        time_end = time.time()
-        print 'Training ends @ %f' % time_end
-        train_time = time_end - time_begin
-        print 'Training elapsed time:%f s' % train_time
-
-        if is_chief:
-          val_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
-          val_xent = sess.run(cross_entropy, feed_dict=val_feed)
-          val_accuracy = sess.run(accuracy, feed_dict=val_feed)
-          print 'After %d training step(s)' % (FLAGS.train_steps)
-          print('cross_entropy:')
-          print(np.mean(val_xent))
-          print("accuracy:")
-          print(val_accuracy)
-        sess.close()
+      if is_chief:
+        val_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
+        val_xent, val_accuracy = mon_sess.run([cross_entropy, accuracy], feed_dict=val_feed)
+        print 'After %d training step(s)' % (FLAGS.train_steps)
+        print('cross_entropy:')
+        print(np.mean(val_xent))
+        print("accuracy:")
+        print(val_accuracy)
 
 if __name__ == '__main__':
     tf.app.run()
