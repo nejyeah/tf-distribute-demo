@@ -1,13 +1,60 @@
 version: '2'
 services:
-  mnist:
-    build: .
-    image: tensorflow/tensorflow:latest-gpu
-    ports:
-    - 8888:8888
-    - 9999:9999
+  ps0:
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    container_name: tf-ps0
     volumes:
-    - .:/mnist
-    - /mnt/data:/mnt/data
-    - /tmp/.X11-unix:/tmp/.X11-unix
-    - /etc/localtime:/etc/localtime:ro
+      - .:/mnist
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /mnist
+    environment:
+      - CUDA_VISIBLE_DEVICES=
+    command: 
+      - "python" 
+      - "src/distributed.py"
+      - "--job_name=ps"
+      - "--task_index=0" 
+      - "--ps_hosts=tf-ps0:2222"
+      - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"
+
+  worker0:
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    container_name: tf-worker0
+    volumes:
+      - .:/mnist
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /mnist
+    environment:
+      - CUDA_VISIBLE_DEVICES=0
+    command: 
+      - "python" 
+      - "src/distributed.py"
+      - "--job_name=worker"
+      - "--task_index=0" 
+      - "--ps_hosts=tf-ps0:2222"
+      - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"
+      #- "--ps_hosts=10.240.208.65:8887"
+      #- "--worker_hosts=10.240.208.65:8885,10.240.208.65:8886"
+
+  worker1:
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    container_name: tf-worker1
+    volumes:
+      - .:/mnist
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /mnist
+    environment:
+      - CUDA_VISIBLE_DEVICES=1
+    command:
+      - "python" 
+      - "src/distributed.py"
+      - "--job_name=worker"
+      - "--task_index=1" 
+      - "--ps_hosts=tf-ps0:2222"
+      - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"

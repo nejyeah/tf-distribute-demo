@@ -1,22 +1,79 @@
 services:
-  mnist:
-    build: .
+  ps0:
+    command:
+    - python
+    - src/distributed.py
+    - --job_name=ps
+    - --task_index=0
+    - --ps_hosts=tf-ps0:2222
+    - --worker_hosts=tf-worker0:2222,tf-worker1:2222
+    container_name: tf-ps0
     devices:
     - /dev/nvidia0
     - /dev/nvidia1
     - /dev/nvidiactl
     - /dev/nvidia-uvm
     - /dev/nvidia-uvm-tools
-    image: tensorflow/tensorflow:latest-gpu
-    ports:
-    - 8888:8888
-    - 9999:9999
+    environment:
+    - CUDA_VISIBLE_DEVICES=
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
     volumes:
     - .:/mnist
-    - /mnt/data:/mnt/data
     - /tmp/.X11-unix:/tmp/.X11-unix
     - /etc/localtime:/etc/localtime:ro
     - nvidia_driver_384.111:/usr/local/nvidia:ro
+    working_dir: /mnist
+  worker0:
+    command:
+    - python
+    - src/distributed.py
+    - --job_name=worker
+    - --task_index=0
+    - --ps_hosts=tf-ps0:2222
+    - --worker_hosts=tf-worker0:2222,tf-worker1:2222
+    container_name: tf-worker0
+    devices:
+    - /dev/nvidia0
+    - /dev/nvidia1
+    - /dev/nvidiactl
+    - /dev/nvidia-uvm
+    - /dev/nvidia-uvm-tools
+    environment:
+    - CUDA_VISIBLE_DEVICES=0
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    volumes:
+    - .:/mnist
+    - /tmp/.X11-unix:/tmp/.X11-unix
+    - /etc/localtime:/etc/localtime:ro
+    - nvidia_driver_384.111:/usr/local/nvidia:ro
+    working_dir: /mnist
+  worker1:
+    command:
+    - python
+    - src/distributed.py
+    - --job_name=worker
+    - --task_index=1
+    - --ps_hosts=tf-ps0:2222
+    - --worker_hosts=tf-worker0:2222,tf-worker1:2222
+    container_name: tf-worker1
+    devices:
+    - /dev/nvidia0
+    - /dev/nvidia1
+    - /dev/nvidiactl
+    - /dev/nvidia-uvm
+    - /dev/nvidia-uvm-tools
+    environment:
+    - CUDA_VISIBLE_DEVICES=1
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    volumes:
+    - .:/mnist
+    - /tmp/.X11-unix:/tmp/.X11-unix
+    - /etc/localtime:/etc/localtime:ro
+    - nvidia_driver_384.111:/usr/local/nvidia:ro
+    working_dir: /mnist
 version: '2'
 volumes:
   nvidia_driver_384.111:

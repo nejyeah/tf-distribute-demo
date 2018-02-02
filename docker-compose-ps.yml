@@ -1,0 +1,22 @@
+version: '2'
+services:
+  ps0:
+    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    restart: on-failure
+    container_name: tf-ps0
+    ports:
+      - 8010:8010
+    volumes:
+      - .:/mnist
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /mnist
+    environment:
+      - CUDA_VISIBLE_DEVICES=
+    command: 
+      - "python"
+      - "src/distributed.py"
+      - "--job_name=ps"
+      - "--task_index=0"
+      - "--ps_hosts=10.240.208.65:8010"
+      - "--worker_hosts=10.240.209.91:8011,10.240.209.91:8012"
