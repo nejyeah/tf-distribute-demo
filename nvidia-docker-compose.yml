@@ -20,7 +20,6 @@ services:
     restart: on-failure
     volumes:
     - .:/mnist
-    - /tmp/.X11-unix:/tmp/.X11-unix
     - /etc/localtime:/etc/localtime:ro
     - nvidia_driver_384.111:/usr/local/nvidia:ro
     working_dir: /mnist
@@ -45,7 +44,6 @@ services:
     restart: on-failure
     volumes:
     - .:/mnist
-    - /tmp/.X11-unix:/tmp/.X11-unix
     - /etc/localtime:/etc/localtime:ro
     - nvidia_driver_384.111:/usr/local/nvidia:ro
     working_dir: /mnist
@@ -70,7 +68,6 @@ services:
     restart: on-failure
     volumes:
     - .:/mnist
-    - /tmp/.X11-unix:/tmp/.X11-unix
     - /etc/localtime:/etc/localtime:ro
     - nvidia_driver_384.111:/usr/local/nvidia:ro
     working_dir: /mnist

@@ -8,7 +8,6 @@ services:
       - 8011:8011
     volumes:
       - .:/mnist
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - /etc/localtime:/etc/localtime:ro
     working_dir: /mnist
     environment:
@@ -29,7 +28,6 @@ services:
       - 8012:8012
     volumes:
       - .:/mnist
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - /etc/localtime:/etc/localtime:ro
     working_dir: /mnist
     environment:

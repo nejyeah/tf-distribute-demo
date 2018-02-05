@@ -13,18 +13,14 @@ flags.DEFINE_integer('train_steps', 10000, 'Number of training steps to perform'
 flags.DEFINE_integer('batch_size', 100, 'Training batch size ')
 flags.DEFINE_float('learning_rate', 0.01, 'Learning rate')
 
-# 定义分布式参数
-# 参数服务器parameter server节点
 flags.DEFINE_string('ps_hosts', '10.240.208.65:8888', 'Comma-separated list of hostname:port pairs')
-# 两个worker节点
 flags.DEFINE_string('worker_hosts', '10.240.209.91:8888,10.240.209.91:9999',
                     'Comma-separated list of hostname:port pairs')
-# 设置job name参数
 flags.DEFINE_string('job_name', None, 'job name: worker or ps')
-# 设置任务的索引
 flags.DEFINE_integer('task_index', None, 'Index of task within the job')
-# 选择异步并行，同步并行
 #flags.DEFINE_integer("issync", None, "是否采用分布式的同步模式，1表示同步模式，0表示异步模式")
+
+flags.DEFINE_string('train_dir', './train_logs', 'output dir to save checkpoints and events')
 
 FLAGS = flags.FLAGS
 
@@ -67,7 +63,8 @@ def main(unused_argv):
         # 生成本地的参数初始化操作init_op
         init_op = tf.global_variables_initializer()
 
-    train_dir = tempfile.mkdtemp()
+    #train_dir = tempfile.mkdtemp()
+    train_dir = FLAGS.train_dir
     # Supervisor is deprecated, using "MonitoredTrainingSession" instead
     # logdir: checkpoint save dir
     sv = tf.train.Supervisor(is_chief=is_chief, logdir=train_dir, init_op=init_op, recovery_wait_secs=1, global_step=global_step)
@@ -92,7 +89,7 @@ def main(unused_argv):
         local_step += 1
 
         now = time.time()
-        print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
+        print '%f: Worker %d: traing step %d done (global step:%d)' % (now, FLAGS.task_index, local_step, step)
 
         if step >= FLAGS.train_steps:
             break
