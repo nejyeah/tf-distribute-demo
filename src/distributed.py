@@ -104,8 +104,7 @@ def main(unused_argv):
 
     if is_chief:
       val_feed = {x: mnist.validation.images, y_: mnist.validation.labels}
-      val_xent = sess.run(cross_entropy, feed_dict=val_feed)
-      val_accuracy = sess.run(accuracy, feed_dict=val_feed)
+      val_xent, val_accuracy = sess.run([cross_entropy, accuracy], feed_dict=val_feed)
       print 'After %d training step(s)' % (FLAGS.train_steps)
       print('cross_entropy:')
       print(np.mean(val_xent))
