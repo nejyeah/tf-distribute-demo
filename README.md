@@ -1,4 +1,8 @@
-﻿##  1.基本概念：
+﻿## Things to do
+Problem1: Only worker0 works for all training task, time is 22.32 s.
+Solved: the training code should be under the tf.device 
+
+##  1.基本概念：
 
 1. Cluster:  定义一个集群
 2. Job:  定义一个Job(ps, worker)

@@ -6,7 +6,6 @@ services:
     container_name: tf-ps0
     volumes:
       - .:/mnist
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - /etc/localtime:/etc/localtime:ro
     working_dir: /mnist
     environment:
@@ -25,7 +24,6 @@ services:
     container_name: tf-worker0
     volumes:
       - .:/mnist
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - /etc/localtime:/etc/localtime:ro
     working_dir: /mnist
     environment:
@@ -37,8 +35,6 @@ services:
       - "--task_index=0" 
       - "--ps_hosts=tf-ps0:2222"
       - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"
-      #- "--ps_hosts=10.240.208.65:8887"
-      #- "--worker_hosts=10.240.208.65:8885,10.240.208.65:8886"
 
   worker1:
     image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
@@ -46,7 +42,6 @@ services:
     container_name: tf-worker1
     volumes:
       - .:/mnist
-      - /tmp/.X11-unix:/tmp/.X11-unix
       - /etc/localtime:/etc/localtime:ro
     working_dir: /mnist
     environment:

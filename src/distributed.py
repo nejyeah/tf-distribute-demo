@@ -26,54 +26,55 @@ flags.DEFINE_integer('task_index', None, 'Index of task within the job')
 # 选择异步并行，同步并行
 #flags.DEFINE_integer("issync", None, "是否采用分布式的同步模式，1表示同步模式，0表示异步模式")
 
+flags.DEFINE_string('train_dir', './train_logs', 'dir to save checkpoint and events')
+
 FLAGS = flags.FLAGS
 
 def main(unused_argv):
-    mnist = tf.contrib.learn.datasets.load_dataset('mnist')
-
-    if FLAGS.job_name is None or FLAGS.job_name == '':
-        raise ValueError('Must specify an explicit job_name !')
-    else:
-        print 'job_name : %s' % FLAGS.job_name
-    if FLAGS.task_index is None or FLAGS.task_index == '':
-        raise ValueError('Must specify an explicit task_index!')
-    else:
-        print 'task_index : %d' % FLAGS.task_index
-
-    ps_spec = FLAGS.ps_hosts.split(',')
-    worker_spec = FLAGS.worker_hosts.split(',')
-
-    # 创建集群
-    cluster = tf.train.ClusterSpec({'ps': ps_spec, 'worker': worker_spec})
-    config = tf.ConfigProto()
-    config.gpu_options.allow_growth = True
-    server = tf.train.Server(cluster, job_name=FLAGS.job_name, task_index=FLAGS.task_index, config=config)
-    if FLAGS.job_name == 'ps':
-        server.join()
-
-    is_chief = (FLAGS.task_index == 0)
-    with tf.device(tf.train.replica_device_setter(cluster=cluster)):
-        global_step = tf.Variable(0, name='global_step', trainable=False)
-        x = tf.placeholder(tf.float32, [None, FLAGS.image_pixels * FLAGS.image_pixels])
-        y_ = tf.placeholder(tf.int32, [None])
-
-        logits = model.mlp(x, FLAGS.image_pixels, FLAGS.hidden_units, FLAGS.num_classes) 
-        cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=logits)
-        # accuracy
-        accuracy = tf.metrics.accuracy(y_, tf.argmax(logits, axis=1))
-
-        train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy, global_step=global_step)
+  mnist = tf.contrib.learn.datasets.load_dataset('mnist')
+ 
+  if FLAGS.job_name is None or FLAGS.job_name == '':
+    raise ValueError('Must specify an explicit job_name !')
+  else:
+    print 'job_name : %s' % FLAGS.job_name
+  if FLAGS.task_index is None or FLAGS.task_index == '':
+    raise ValueError('Must specify an explicit task_index!')
+  else:
+    print 'task_index : %d' % FLAGS.task_index
+ 
+  ps_spec = FLAGS.ps_hosts.split(',')
+  worker_spec = FLAGS.worker_hosts.split(',')
+ 
+  # 创建集群
+  cluster = tf.train.ClusterSpec({'ps': ps_spec, 'worker': worker_spec})
+  config = tf.ConfigProto()
+  config.gpu_options.allow_growth = True
+  server = tf.train.Server(cluster, job_name=FLAGS.job_name, task_index=FLAGS.task_index, config=config)
+  if FLAGS.job_name == 'ps':
+    server.join()
+ 
+  is_chief = (FLAGS.task_index == 0)
+  with tf.device(tf.train.replica_device_setter(cluster=cluster)):
+    global_step = tf.Variable(0, name='global_step', trainable=False)
+    x = tf.placeholder(tf.float32, [None, FLAGS.image_pixels * FLAGS.image_pixels])
+    y_ = tf.placeholder(tf.int32, [None])
+ 
+    logits = model.mlp(x, FLAGS.image_pixels, FLAGS.hidden_units, FLAGS.num_classes) 
+    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=logits)
+    # accuracy
+    accuracy = tf.metrics.accuracy(y_, tf.argmax(logits, axis=1))
+ 
+    train_op = tf.train.AdamOptimizer(FLAGS.learning_rate).minimize(cross_entropy, global_step=global_step)
 
     # 生成本地的参数初始化操作init_op
     hooks = [tf.train.StopAtStepHook(last_step=FLAGS.train_steps)]
-    ## train_dir = tempfile.mkdtemp()
 
     # The MonitoredTrainingSession takes care of session initialization,
     # restoring from a checkpoint, saving to a checkpoint, and closing when done
     # or an error occurs.
     with tf.train.MonitoredTrainingSession(master=server.target,
                                            is_chief=is_chief,
-                                           checkpoint_dir="./train_logs",
+                                           checkpoint_dir=FLAGS.train_dir,
                                            hooks=hooks) as mon_sess:
 
       time_begin = time.time()
@@ -86,8 +87,7 @@ def main(unused_argv):
         _, step = mon_sess.run([train_op, global_step], feed_dict=train_feed)
         local_step += 1
 
-        #now = time.time()
-        #print '%f: Worker %d: traing step %d dome (global step:%d)' % (now, FLAGS.task_index, local_step, step)
+        print 'Worker %d: traing step %d done (global step:%d)' % (FLAGS.task_index, local_step, step)
 
       time_end = time.time()
       train_time = time_end - time_begin
