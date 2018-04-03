@@ -1,7 +1,8 @@
-version: '2'
+version: '2.3'
 services:
   ps0:
-    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    image: tensorflow/tensorflow:1.7.0-gpu
+    runtime: nvidia
     restart: on-failure
     container_name: tf-ps0
     volumes:
@@ -19,7 +20,8 @@ services:
       - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"
 
   worker0:
-    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    image: tensorflow/tensorflow:1.7.0-gpu
+    runtime: nvidia
     restart: on-failure
     container_name: tf-worker0
     volumes:
@@ -37,8 +39,9 @@ services:
       - "--worker_hosts=tf-worker0:2222,tf-worker1:2222"
 
   worker1:
-    image: gcr.io/tensorflow/tensorflow:1.5.0-gpu
+    image: tensorflow/tensorflow:1.7.0-gpu
     restart: on-failure
+    runtime: nvidia
     container_name: tf-worker1
     volumes:
       - .:/mnist
